@@ -1,6 +1,7 @@
 package spender
 
 import (
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -29,6 +30,8 @@ func TestCreateSpender(t *testing.T) {
 		row := sqlmock.NewRows([]string{"id"}).AddRow(1)
 		mock.ExpectQuery(cStmt).WithArgs("HongJot", "hong@jot.ok").WillReturnRows(row)
 		cfg := config.FeatureFlag{EnableCreateSpender: true}
+
+		fmt.Println()
 
 		h := New(cfg, db)
 		err := h.Create(c)

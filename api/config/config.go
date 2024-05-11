@@ -30,6 +30,7 @@ type Database struct {
 
 type FeatureFlag struct {
 	EnableCreateSpender bool `env:"ENABLE_CREATE_SPENDER"`
+	EnableCreateTransaction bool `env:"ENABLE_CREATE_TRANSACTION"`
 }
 
 func Env(key string) string {
@@ -85,6 +86,7 @@ func parse(envPrefix string) (Config, error) {
 		},
 		FeatureFlag: FeatureFlag{
 			EnableCreateSpender: feats.EnableCreateSpender,
+			EnableCreateTransaction: feats.EnableCreateTransaction,
 		},
 	}, nil
 }

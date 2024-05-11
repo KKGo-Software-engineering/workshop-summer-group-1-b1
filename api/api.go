@@ -9,6 +9,7 @@ import (
 	"github.com/KKGo-Software-engineering/workshop-summer/api/mlog"
 	"github.com/KKGo-Software-engineering/workshop-summer/api/spender"
 	"github.com/KKGo-Software-engineering/workshop-summer/api/transactions"
+	"github.com/KKGo-Software-engineering/workshop-summer/api/transaction"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	"go.uber.org/zap"
@@ -38,6 +39,14 @@ func New(db *sql.DB, cfg config.Config, logger *zap.Logger) *Server {
 		v1.GET("/spenders/:id", h.Get)
 		v1.POST("/spenders", h.Create)
 	}
+
+	{
+		h := transaction.New(cfg.FeatureFlag, db)
+		v1.POST("/transactions", h.Create)
+	}
+
+
+
 
 	return &Server{e}
 }
