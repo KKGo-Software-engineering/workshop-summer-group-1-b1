@@ -143,3 +143,78 @@ func TestGetAllSpender(t *testing.T) {
 		assert.Equal(t, http.StatusInternalServerError, rec.Code)
 	})
 }
+
+func TestGetSpender(t *testing.T) {
+	t.Run("get spender succesfully", func(t *testing.T) {
+		e := echo.New()
+		defer e.Close()
+
+		req := httptest.NewRequest(http.MethodGet, "/1", nil)
+		rec := httptest.NewRecorder()
+		c := e.NewContext(req, rec)
+
+		c.SetParamNames("id")
+		c.SetParamValues("1")
+
+		db, mock, _ := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
+		defer db.Close()
+
+		rows := sqlmock.NewRows([]string{"id", "name", "email"}).
+			AddRow(1, "HongJot", "hong@jot.ok").
+			AddRow(2, "JotHong", "jot@jot.ok")
+		mock.ExpectQuery(`SELECT id, name, email FROM spender WHERE id=$1`).WithArgs("1").WillReturnRows(rows)
+
+		h := New(config.FeatureFlag{}, db)
+		err := h.Get(c)
+
+		assert.NoError(t, err)
+		assert.Equal(t, http.StatusOK, rec.Code)
+		assert.JSONEq(t, `{"id": 1, "name": "HongJot", "email": "hong@jot.ok"}`, rec.Body.String())
+	})
+
+	t.Run("test get spender with non integer ID", func(t *testing.T) {
+		e := echo.New()
+		defer e.Close()
+
+		req := httptest.NewRequest(http.MethodGet, "/non-int", nil)
+		rec := httptest.NewRecorder()
+		c := e.NewContext(req, rec)
+
+		c.SetParamNames("id")
+		c.SetParamValues("non-int")
+
+		db, mock, _ := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
+		defer db.Close()
+
+		mock.ExpectQuery(`SELECT id, name, email FROM spender WHERE id=$1`).WithArgs("non-int")
+
+		h := New(config.FeatureFlag{}, db)
+		err := h.Get(c)
+
+		assert.NoError(t, err)
+		assert.Equal(t, http.StatusBadRequest, rec.Code)
+	})
+
+	t.Run("get spender return database error", func(t *testing.T) {
+		e := echo.New()
+		defer e.Close()
+
+		req := httptest.NewRequest(http.MethodGet, "/1", nil)
+		rec := httptest.NewRecorder()
+		c := e.NewContext(req, rec)
+
+		c.SetParamNames("id")
+		c.SetParamValues("1")
+
+		db, mock, _ := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
+		defer db.Close()
+
+		mock.ExpectQuery(`SELECT id, name, email FROM spender WHERE id=$1`).WithArgs("1")
+
+		h := New(config.FeatureFlag{}, db)
+		err := h.Get(c)
+
+		assert.NoError(t, err)
+		assert.Equal(t, http.StatusNotFound, rec.Code)
+	})
+}
