@@ -45,8 +45,5 @@ func New(db *sql.DB, cfg config.Config, logger *zap.Logger) *Server {
 		v1.POST("/transactions", h.Create)
 	}
 
-
-
-
 	return &Server{e}
 }
