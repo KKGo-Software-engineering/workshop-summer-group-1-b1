@@ -3,6 +3,7 @@ package spender
 import (
 	"database/sql"
 	"net/http"
+	"strconv"
 
 	"github.com/KKGo-Software-engineering/workshop-summer/api/config"
 	"github.com/kkgo-software-engineering/workshop/mlog"
@@ -78,4 +79,31 @@ func (h handler) GetAll(c echo.Context) error {
 	}
 
 	return c.JSON(http.StatusOK, sps)
+}
+
+func (h handler) Get(c echo.Context) error {
+	logger := mlog.L(c)
+	ctx := c.Request().Context()
+
+	id := c.Param("id")
+
+	if _, err := strconv.Atoi(id); err != nil {
+		logger.Error("id is non-int")
+		return c.JSON(http.StatusBadRequest, "id is non-int")
+	}
+
+	row := h.db.QueryRowContext(ctx, `SELECT id, name, email FROM spender WHERE id=$1`, id)
+	if row.Err() != nil {
+		logger.Error("query error", zap.Error(row.Err()))
+		return c.JSON(http.StatusNotFound, row.Err())
+	}
+
+	var sp Spender
+	err := row.Scan(&sp.ID, &sp.Name, &sp.Email)
+	if err != nil {
+		logger.Error("scan error", zap.Error(err))
+		return c.JSON(http.StatusInternalServerError, err.Error())
+	}
+
+	return c.JSON(http.StatusOK, sp)
 }
