@@ -5,6 +5,7 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/KKGo-Software-engineering/workshop-summer/api/config"
@@ -195,7 +196,6 @@ func TestGetSpender(t *testing.T) {
 		assert.Equal(t, http.StatusBadRequest, rec.Code)
 	})
 
-
 	t.Run("update spender feature is disabled", func(t *testing.T) {
 		e := echo.New()
 		defer e.Close()
@@ -216,4 +216,60 @@ func TestGetSpender(t *testing.T) {
 		assert.Equal(t, http.StatusForbidden, rec.Code)
 	})
 
+}
+func TestTransactionBySpenderId(t *testing.T) {
+
+	t.Run("get transaction by spender id successfully", func(t *testing.T) {
+		e := echo.New()
+		defer e.Close()
+
+		req := httptest.NewRequest(http.MethodGet, "/", nil)
+		rec := httptest.NewRecorder()
+		c := e.NewContext(req, rec)
+
+		c.SetParamNames("id")
+		c.SetParamValues("1")
+
+		db, mock, _ := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
+		defer db.Close()
+
+		expectedDate := time.Date(2024, 5, 11, 20, 34, 58, 651387237, time.UTC)
+		//SELECT id, sender_id, date, amount, category, transaction_type, note, image_url FROM
+		rows := sqlmock.NewRows([]string{"id", "spender_id", "date", "amount", "category", "transaction_type", "note", "image_url"}).
+			AddRow(1, 1, expectedDate, 1000.00, "Food", "expense", "Lunch", "https://example.com/image1.jpg")
+		mock.ExpectQuery(`SELECT id, spender_id, date, amount, category, transaction_type, note, image_url FROM transaction WHERE spender_id=$1`).WithArgs("1").WillReturnRows(rows)
+
+		h := New(config.FeatureFlag{}, db)
+		err := h.GetTransactions(c)
+
+		assert.NoError(t, err)
+		assert.Equal(t, http.StatusOK, rec.Code)
+
+		assert.JSONEq(t, `{"pagination":{"current_page":1,"per_page":10,"total_pages":1},
+		"summary":{"current_balance":-1000,"total_expenses":1000,"total_income":0},
+		"transections":[{"id":1,"spender_id":1,"date":"2024-05-11T20:34:58.651387237Z","amount":1000,"category":"Food","transaction_type":"expense","note":"Lunch","image_url":"https://example.com/image1.jpg"}]}`, rec.Body.String())
+	})
+
+	t.Run("test get spender with non integer ID", func(t *testing.T) {
+		e := echo.New()
+		defer e.Close()
+
+		req := httptest.NewRequest(http.MethodGet, "/non-int", nil)
+		rec := httptest.NewRecorder()
+		c := e.NewContext(req, rec)
+
+		c.SetParamNames("id")
+		c.SetParamValues("non-int")
+
+		db, mock, _ := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
+		defer db.Close()
+
+		mock.ExpectQuery(`SELECT id, name, email FROM spender WHERE id=$1`).WithArgs("non-int")
+
+		h := New(config.FeatureFlag{}, db)
+		err := h.Get(c)
+
+		assert.NoError(t, err)
+		assert.Equal(t, http.StatusBadRequest, rec.Code)
+	})
 }

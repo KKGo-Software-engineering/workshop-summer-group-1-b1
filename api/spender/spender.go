@@ -152,7 +152,7 @@ func (h handler) GetTransactions(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, "id is non-int")
 	}
 
-	rows, err := h.db.QueryContext(ctx, `SELECT id, sender_id, date, amount, category, transaction_type, note, image_url FROM transaction WHERE sender_id=$1`, id)
+	rows, err := h.db.QueryContext(ctx, `SELECT id, spender_id, date, amount, category, transaction_type, note, image_url FROM transaction WHERE spender_id=$1`, id)
 	if err != nil {
 		logger.Error("query error", zap.Error(err))
 		return c.JSON(http.StatusInternalServerError, err.Error())
@@ -179,7 +179,6 @@ func (h handler) GetTransactions(c echo.Context) error {
 		}
 	}
 	currentBalance = totalIncome - totalExpenses
-
 
 	currentPage := 1
 	totalPages := len(ts)/10 + 1

@@ -15,7 +15,7 @@ import (
 
 type Transaction struct {
 	ID              int64     `json:"id"`
-	SpenderID        int       `json:"spender_id"`
+	SpenderID       int       `json:"spender_id"`
 	Date            time.Time `json:"date"`
 	Amount          float32   `json:"amount"`
 	Category        string    `json:"category"`
@@ -53,10 +53,67 @@ func (h handler) Get(c echo.Context) error {
 		return c.JSON(http.StatusInternalServerError, err.Error())
 	}
 
-
-
 	logger.Info("get successfully", zap.Int64("id", id))
 	return c.JSON(http.StatusOK, ts)
+}
+
+func (h handler) GetTransactions(c echo.Context) error {
+	logger := mlog.L(c)
+	ctx := c.Request().Context()
+
+	id := c.Param("id")
+
+	if _, err := strconv.Atoi(id); err != nil {
+		logger.Error("id is non-int")
+		return c.JSON(http.StatusBadRequest, "id is non-int")
+	}
+
+	rows, err := h.db.QueryContext(ctx, `SELECT id, sender_id, date, amount, category, transaction_type, note, image_url FROM transaction WHERE sender_id=$1`, id)
+	if err != nil {
+		logger.Error("query error", zap.Error(err))
+		return c.JSON(http.StatusInternalServerError, err.Error())
+	}
+	defer rows.Close()
+
+	var ts []Transaction
+	for rows.Next() {
+		var t Transaction
+		err := rows.Scan(&t.ID, &t.SpenderID, &t.Date, &t.Amount, &t.Category, &t.TransactionType, &t.Note, &t.ImageUrl)
+		if err != nil {
+			logger.Error("scan error", zap.Error(err))
+			return c.JSON(http.StatusInternalServerError, err.Error())
+		}
+		ts = append(ts, t)
+	}
+
+	var totalIncome, totalExpenses, currentBalance float32
+	for _, t := range ts {
+		if t.TransactionType == "income" {
+			totalIncome += t.Amount
+		} else {
+			totalExpenses += t.Amount
+		}
+	}
+	currentBalance = totalIncome - totalExpenses
+
+	currentPage := 1
+	totalPages := len(ts)/10 + 1
+	perPage := 10
+
+	return c.JSON(http.StatusOK, map[string]interface{}{
+		"transections": ts,
+		"summary": map[string]float32{
+			"total_income":    totalIncome,
+			"total_expenses":  totalExpenses,
+			"current_balance": currentBalance,
+		},
+
+		"pagination": map[string]int{
+			"current_page": currentPage,
+			"total_pages":  totalPages,
+			"per_page":     perPage,
+		},
+	})
 }
 
 func (h handler) Create(c echo.Context) error {
@@ -75,7 +132,7 @@ func (h handler) Create(c echo.Context) error {
 
 	ctx := c.Request().Context()
 	var lastInsertId int64
-	err = h.db.QueryRowContext(ctx, cStmt, ts.SpenderID ,ts.Date, ts.Amount, ts.Category, ts.TransactionType, ts.Note, ts.ImageUrl).Scan(&lastInsertId)
+	err = h.db.QueryRowContext(ctx, cStmt, ts.SpenderID, ts.Date, ts.Amount, ts.Category, ts.TransactionType, ts.Note, ts.ImageUrl).Scan(&lastInsertId)
 	if err != nil {
 		logger.Error("query row error", zap.Error(err))
 		return c.JSON(http.StatusInternalServerError, err.Error())
@@ -131,7 +188,7 @@ func (h handler) GetAll(c echo.Context) error {
 	var ts []Transaction
 	for rows.Next() {
 		var t Transaction
-		err := rows.Scan(&t.ID, &t.SpenderID , &t.Date, &t.Amount, &t.Category, &t.TransactionType, &t.Note, &t.ImageUrl)
+		err := rows.Scan(&t.ID, &t.SpenderID, &t.Date, &t.Amount, &t.Category, &t.TransactionType, &t.Note, &t.ImageUrl)
 		if err != nil {
 			logger.Error("scan error", zap.Error(err))
 			return c.JSON(http.StatusInternalServerError, err.Error())
