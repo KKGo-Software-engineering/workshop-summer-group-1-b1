@@ -38,11 +38,16 @@ func New(db *sql.DB, cfg config.Config, logger *zap.Logger) *Server {
 		v1.GET("/spenders", h.GetAll)
 		v1.GET("/spenders/:id", h.Get)
 		v1.POST("/spenders", h.Create)
+		v1.PUT("/spenders/:id", h.Update)
+		v1.GET("/spenders/:id/transactions", h.GetTransactions) // no test
+		v1.GET("/spenders/:id/transections/summary", h.GetSummary) // no test
 	}
 
 	{
 		h := transaction.New(cfg.FeatureFlag, db)
 		v1.POST("/transactions", h.Create)
+		v1.GET("/transactions/:id", h.Get)
+		v1.PUT("/transactions/:id", h.Update)  // wrong id
 	}
 
 	return &Server{e}

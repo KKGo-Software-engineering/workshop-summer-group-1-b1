@@ -6,6 +6,7 @@ import (
 	"strconv"
 
 	"github.com/KKGo-Software-engineering/workshop-summer/api/config"
+	"github.com/KKGo-Software-engineering/workshop-summer/api/transaction"
 	"github.com/kkgo-software-engineering/workshop/mlog"
 	"github.com/labstack/echo/v4"
 	"go.uber.org/zap"
@@ -106,4 +107,140 @@ func (h handler) Get(c echo.Context) error {
 	}
 
 	return c.JSON(http.StatusOK, sp)
+}
+
+func (h handler) Update(c echo.Context) error {
+	if !h.flag.EnableUpdateSpender {
+		return c.JSON(http.StatusForbidden, "update spender feature is disabled")
+	}
+
+	logger := mlog.L(c)
+	ctx := c.Request().Context()
+
+	id := c.Param("id")
+
+	if _, err := strconv.Atoi(id); err != nil {
+		logger.Error("id is non-int")
+		return c.JSON(http.StatusBadRequest, "id is non-int")
+	}
+
+	var sp Spender
+	err := c.Bind(&sp)
+	if err != nil {
+		logger.Error("bad request body", zap.Error(err))
+		return c.JSON(http.StatusBadRequest, err.Error())
+	}
+
+	_, err = h.db.ExecContext(ctx, `UPDATE spender SET name=$1, email=$2 WHERE id=$3`, sp.Name, sp.Email, id)
+	if err != nil {
+		logger.Error("update error", zap.Error(err))
+		return c.JSON(http.StatusInternalServerError, err.Error())
+	}
+
+	logger.Info("update successfully", zap.String("id", id))
+	return c.JSON(http.StatusOK, "update successfully")
+}
+
+func (h handler) GetTransactions(c echo.Context) error {
+	logger := mlog.L(c)
+	ctx := c.Request().Context()
+
+	id := c.Param("id")
+
+	if _, err := strconv.Atoi(id); err != nil {
+		logger.Error("id is non-int")
+		return c.JSON(http.StatusBadRequest, "id is non-int")
+	}
+
+	rows, err := h.db.QueryContext(ctx, `SELECT id, sender_id, date, amount, category, transaction_type, note, image_url FROM transaction WHERE sender_id=$1`, id)
+	if err != nil {
+		logger.Error("query error", zap.Error(err))
+		return c.JSON(http.StatusInternalServerError, err.Error())
+	}
+	defer rows.Close()
+
+	var ts []transaction.Transaction
+	for rows.Next() {
+		var t transaction.Transaction
+		err := rows.Scan(&t.ID, &t.SenderID, &t.Date, &t.Amount, &t.Category, &t.TransactionType, &t.Note, &t.ImageUrl)
+		if err != nil {
+			logger.Error("scan error", zap.Error(err))
+			return c.JSON(http.StatusInternalServerError, err.Error())
+		}
+		ts = append(ts, t)
+	}
+
+	var totalIncome, totalExpenses, currentBalance float32
+	for _, t := range ts {
+		if t.TransactionType == "income" {
+			totalIncome += t.Amount
+		} else {
+			totalExpenses += t.Amount
+		}
+	}
+	currentBalance = totalIncome - totalExpenses
+
+
+	currentPage := 1
+	totalPages := len(ts)/10 + 1
+	perPage := 10
+
+	return c.JSON(http.StatusOK, map[string]interface{}{
+		"transections": ts,
+		"summary": map[string]float32{
+			"total_income":    totalIncome,
+			"total_expenses":  totalExpenses,
+			"current_balance": currentBalance,
+		},
+
+		"pagination": map[string]int{
+			"current_page": currentPage,
+			"total_pages":  totalPages,
+			"per_page":     perPage,
+		},
+	})
+}
+
+func (h handler) GetSummary(c echo.Context) error {
+
+	logger := mlog.L(c)
+	ctx := c.Request().Context()
+
+	id := c.Param("id")
+
+	if _, err := strconv.Atoi(id); err != nil {
+		logger.Error("id is non-int")
+		return c.JSON(http.StatusBadRequest, "id is non-int")
+	}
+
+	rows, err := h.db.QueryContext(ctx, `SELECT amount, transaction_type FROM transaction WHERE sender_id=$1`, id)
+	if err != nil {
+		logger.Error("query error", zap.Error(err))
+		return c.JSON(http.StatusInternalServerError, err.Error())
+	}
+	defer rows.Close()
+
+	var totalIncome, totalExpenses, currentBalance float64
+	for rows.Next() {
+		var amount float64
+		var transactionType string
+		err := rows.Scan(&amount, &transactionType)
+		if err != nil {
+			logger.Error("scan error", zap.Error(err))
+			return c.JSON(http.StatusInternalServerError, err.Error())
+		}
+		if transactionType == "income" {
+			totalIncome += amount
+		} else {
+			totalExpenses += amount
+		}
+	}
+	currentBalance = totalIncome - totalExpenses
+	return c.JSON(http.StatusOK, map[string]interface{}{
+		"summary": map[string]float64{
+			"total_income":    totalIncome,
+			"total_expenses":  totalExpenses,
+			"current_balance": currentBalance,
+		},
+	})
 }

@@ -149,7 +149,7 @@ func TestGetSpender(t *testing.T) {
 		e := echo.New()
 		defer e.Close()
 
-		req := httptest.NewRequest(http.MethodGet, "/1", nil)
+		req := httptest.NewRequest(http.MethodGet, "/", nil)
 		rec := httptest.NewRecorder()
 		c := e.NewContext(req, rec)
 
@@ -195,26 +195,25 @@ func TestGetSpender(t *testing.T) {
 		assert.Equal(t, http.StatusBadRequest, rec.Code)
 	})
 
-	t.Run("get spender return database error", func(t *testing.T) {
+
+	t.Run("update spender feature is disabled", func(t *testing.T) {
 		e := echo.New()
 		defer e.Close()
 
-		req := httptest.NewRequest(http.MethodGet, "/1", nil)
+		req := httptest.NewRequest(http.MethodPut, "/", strings.NewReader(`{"name": "HongJot", "email": "a1@a.com"}`))
+		req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
 		rec := httptest.NewRecorder()
 		c := e.NewContext(req, rec)
-
+		c.SetPath("/spenders/:id")
 		c.SetParamNames("id")
 		c.SetParamValues("1")
 
-		db, mock, _ := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
-		defer db.Close()
-
-		mock.ExpectQuery(`SELECT id, name, email FROM spender WHERE id=$1`).WithArgs("1")
-
-		h := New(config.FeatureFlag{}, db)
-		err := h.Get(c)
+		cfg := config.FeatureFlag{EnableUpdateSpender: false}
+		h := New(cfg, nil)
+		err := h.Update(c)
 
 		assert.NoError(t, err)
-		assert.Equal(t, http.StatusNotFound, rec.Code)
+		assert.Equal(t, http.StatusForbidden, rec.Code)
 	})
+
 }

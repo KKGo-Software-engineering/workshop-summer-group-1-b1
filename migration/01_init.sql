@@ -5,6 +5,10 @@ CREATE TABLE IF NOT EXISTS "spender" (
 	name VARCHAR(255) NOT NULL,
 	email VARCHAR(255) NOT NULL
 );
+
+INSERT INTO spender ( name , email) VALUES
+('John Doe', 'john001@gmail.com'),
+('Jane Doe', 'jane002@gmail.com');
 -- +goose StatementEnd
 
 -- +goose Down
