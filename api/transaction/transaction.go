@@ -15,7 +15,7 @@ import (
 
 type Transaction struct {
 	ID              int64     `json:"id"`
-	SenderID        int       `json:"sender_id"`
+	SpenderID        int       `json:"spender_id"`
 	Date            time.Time `json:"date"`
 	Amount          float32   `json:"amount"`
 	Category        string    `json:"category"`
@@ -34,7 +34,7 @@ func New(cfg config.FeatureFlag, db *sql.DB) *handler {
 }
 
 const (
-	cStmt = `INSERT INTO transaction ( sender_id , date , amount , category, transaction_type, note, image_url) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id;`
+	cStmt = `INSERT INTO transaction ( spender_id , date , amount , category, transaction_type, note, image_url) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id;`
 )
 
 func (h handler) Get(c echo.Context) error {
@@ -47,7 +47,7 @@ func (h handler) Get(c echo.Context) error {
 
 	ctx := c.Request().Context()
 	var ts Transaction
-	err = h.db.QueryRowContext(ctx, "SELECT * FROM transaction WHERE id = $1", id).Scan(&ts.ID, &ts.SenderID, &ts.Date, &ts.Amount, &ts.Category, &ts.TransactionType, &ts.Note, &ts.ImageUrl)
+	err = h.db.QueryRowContext(ctx, "SELECT * FROM transaction WHERE id = $1", id).Scan(&ts.ID, &ts.SpenderID, &ts.Date, &ts.Amount, &ts.Category, &ts.TransactionType, &ts.Note, &ts.ImageUrl)
 	if err != nil {
 		logger.Error("query row error", zap.Error(err))
 		return c.JSON(http.StatusInternalServerError, err.Error())
@@ -75,7 +75,7 @@ func (h handler) Create(c echo.Context) error {
 
 	ctx := c.Request().Context()
 	var lastInsertId int64
-	err = h.db.QueryRowContext(ctx, cStmt, ts.SenderID ,ts.Date, ts.Amount, ts.Category, ts.TransactionType, ts.Note, ts.ImageUrl).Scan(&lastInsertId)
+	err = h.db.QueryRowContext(ctx, cStmt, ts.SpenderID ,ts.Date, ts.Amount, ts.Category, ts.TransactionType, ts.Note, ts.ImageUrl).Scan(&lastInsertId)
 	if err != nil {
 		logger.Error("query row error", zap.Error(err))
 		return c.JSON(http.StatusInternalServerError, err.Error())
@@ -107,7 +107,7 @@ func (h handler) Update(c echo.Context) error {
 	}
 
 	ctx := c.Request().Context()
-	_, err = h.db.ExecContext(ctx, "UPDATE transaction SET sender_id = $1, date = $2, amount = $3, category = $4, transaction_type = $5, note = $6, image_url = $7 WHERE id = $8", ts.SenderID, ts.Date, ts.Amount, ts.Category, ts.TransactionType, ts.Note, ts.ImageUrl, id)
+	_, err = h.db.ExecContext(ctx, "UPDATE transaction SET spender_id = $1, date = $2, amount = $3, category = $4, transaction_type = $5, note = $6, image_url = $7 WHERE id = $8", ts.SpenderID, ts.Date, ts.Amount, ts.Category, ts.TransactionType, ts.Note, ts.ImageUrl, id)
 	if err != nil {
 		logger.Error("exec error", zap.Error(err))
 		return c.JSON(http.StatusInternalServerError, err.Error())
@@ -131,7 +131,7 @@ func (h handler) GetAll(c echo.Context) error {
 	var ts []Transaction
 	for rows.Next() {
 		var t Transaction
-		err := rows.Scan(&t.ID, &t.SenderID , &t.Date, &t.Amount, &t.Category, &t.TransactionType, &t.Note, &t.ImageUrl)
+		err := rows.Scan(&t.ID, &t.SpenderID , &t.Date, &t.Amount, &t.Category, &t.TransactionType, &t.Note, &t.ImageUrl)
 		if err != nil {
 			logger.Error("scan error", zap.Error(err))
 			return c.JSON(http.StatusInternalServerError, err.Error())

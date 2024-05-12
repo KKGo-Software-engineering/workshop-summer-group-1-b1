@@ -162,7 +162,7 @@ func (h handler) GetTransactions(c echo.Context) error {
 	var ts []transaction.Transaction
 	for rows.Next() {
 		var t transaction.Transaction
-		err := rows.Scan(&t.ID, &t.SenderID, &t.Date, &t.Amount, &t.Category, &t.TransactionType, &t.Note, &t.ImageUrl)
+		err := rows.Scan(&t.ID, &t.SpenderID, &t.Date, &t.Amount, &t.Category, &t.TransactionType, &t.Note, &t.ImageUrl)
 		if err != nil {
 			logger.Error("scan error", zap.Error(err))
 			return c.JSON(http.StatusInternalServerError, err.Error())

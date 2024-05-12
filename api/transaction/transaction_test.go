@@ -21,7 +21,7 @@ func TestCreateTransaction(t *testing.T) {
 
 		req := httptest.NewRequest(http.MethodPost, "/", strings.NewReader(`{
 			"date": "2024-04-30T09:00:00.000Z",
-			"sender_id":1,
+			"spender_id":1,
 			"amount": 1500,
 			"category": "Food",
 			"transaction_type": "expense",
@@ -41,7 +41,7 @@ func TestCreateTransaction(t *testing.T) {
 
 		ts := Transaction{
 			Date:            parsedDate,
-			SenderID:        1,
+			SpenderID:        1,
 			Amount:          1500,
 			Category:        "Food",
 			TransactionType: "expense",
@@ -50,7 +50,7 @@ func TestCreateTransaction(t *testing.T) {
 		}
 
 		row := sqlmock.NewRows([]string{"id"}).AddRow(1)
-		mock.ExpectQuery(cStmt).WithArgs(ts.SenderID, ts.Date, ts.Amount, ts.Category, ts.TransactionType, ts.Note, ts.ImageUrl).WillReturnRows(row)
+		mock.ExpectQuery(cStmt).WithArgs(ts.SpenderID, ts.Date, ts.Amount, ts.Category, ts.TransactionType, ts.Note, ts.ImageUrl).WillReturnRows(row)
 		cfg := config.FeatureFlag{EnableCreateTransaction: true}
 
 		h := New(cfg, db)
@@ -60,7 +60,7 @@ func TestCreateTransaction(t *testing.T) {
 		assert.Equal(t, http.StatusCreated, rec.Code)
 		assert.JSONEq(t, `{
 			"id": 1,
-			"sender_id": 1,
+			"spender_id": 1,
 			"date": "2024-04-30T09:00:00Z",
 			"amount": 1500,
 			"category": "Food",
@@ -76,7 +76,7 @@ func TestCreateTransaction(t *testing.T) {
 
 		req := httptest.NewRequest(http.MethodPost, "/", strings.NewReader(`{
 			"date": "2024-04-30T09:00:00.000Z",
-			"sender_id":1,
+			"spender_id":1,
 			"amount": 1500,
 			"category": "Food",
 			"transaction_type": "expense",
@@ -132,7 +132,7 @@ func TestCreateTransaction(t *testing.T) {
 
 		ts := Transaction{
 			ID:              1,
-			SenderID:        1,
+			SpenderID:        1,
 			Date:            parsedDate,
 			Amount:          1500,
 			Category:        "Food",
@@ -141,7 +141,7 @@ func TestCreateTransaction(t *testing.T) {
 			ImageUrl:        "https://example.com/image1.jpg",
 		}
 
-		row := sqlmock.NewRows([]string{"id", "sender_id", "date", "amount", "category", "transaction_type", "note", "image_url"}).AddRow(ts.ID, ts.SenderID, ts.Date, ts.Amount, ts.Category, ts.TransactionType, ts.Note, ts.ImageUrl)
+		row := sqlmock.NewRows([]string{"id", "spender_id", "date", "amount", "category", "transaction_type", "note", "image_url"}).AddRow(ts.ID, ts.SpenderID, ts.Date, ts.Amount, ts.Category, ts.TransactionType, ts.Note, ts.ImageUrl)
 		mock.ExpectQuery("SELECT * FROM transaction WHERE id = $1").WithArgs(ts.ID).WillReturnRows(row)
 
 		cfg := config.FeatureFlag{EnableCreateTransaction: true}
@@ -153,7 +153,7 @@ func TestCreateTransaction(t *testing.T) {
 		assert.Equal(t, http.StatusOK, rec.Code)
 		assert.JSONEq(t, `{
 			"id": 1,
-			"sender_id": 1,
+			"spender_id": 1,
 			"date": "2024-04-30T09:00:00Z",
 			"amount": 1500,
 			"category": "Food",
@@ -216,7 +216,7 @@ func TestCreateTransaction(t *testing.T) {
 
 		req := httptest.NewRequest(http.MethodPut, "/", strings.NewReader(`{
 			"date": "2024-04-30T09:00:00.000Z",
-			"sender_id":1,
+			"spender_id":1,
 			"amount": 1500,
 			"category": "Food",
 			"transaction_type": "expense",
@@ -259,7 +259,7 @@ func TestCreateTransaction(t *testing.T) {
 
 		req := httptest.NewRequest(http.MethodPut, "/", strings.NewReader(`{
 			"date": "2024-04-30T09:00:00.000Z",
-			"sender_id":1,
+			"spender_id":1,
 			"amount": 1500,
 			"category": "Food",
 			"transaction_type": "expense",
@@ -294,7 +294,7 @@ func TestCreateTransaction(t *testing.T) {
 
 		req := httptest.NewRequest(http.MethodPut, "/", strings.NewReader(`{
 			"date": "2024-04-30T09:00:00.000Z",
-			"sender_id":1,
+			"spender_id":1,
 			"amount": 1500,
 			"category": "Food",
 			"transaction_type": "expense",
@@ -323,7 +323,7 @@ func TestCreateTransaction(t *testing.T) {
 
 		req := httptest.NewRequest(http.MethodPut, "/", strings.NewReader(`{
 			"date": "2024-04-30T09:00:00.000Z",
-			"sender_id":1,
+			"spender_id":1,
 			"amount": 1500,
 			"category": "Food",
 			"transaction_type": "expense",
@@ -347,7 +347,7 @@ func TestCreateTransaction(t *testing.T) {
 		ts := Transaction{
 			ID:              1,
 			Date:            parsedDate,
-			SenderID:        1,
+			SpenderID:        1,
 			Amount:          1500,
 			Category:        "Food",
 			TransactionType: "expense",
@@ -355,7 +355,7 @@ func TestCreateTransaction(t *testing.T) {
 			ImageUrl:        "https://example.com/image1.jpg",
 		}
 
-		mock.ExpectExec("UPDATE transaction SET sender_id = $1, date = $2, amount = $3, category = $4, transaction_type = $5, note = $6, image_url = $7 WHERE id = $8").WithArgs(ts.SenderID, ts.Date, ts.Amount, ts.Category, ts.TransactionType, ts.Note, ts.ImageUrl, ts.ID).WillReturnResult(sqlmock.NewResult(1, 1))
+		mock.ExpectExec("UPDATE transaction SET spender_id = $1, date = $2, amount = $3, category = $4, transaction_type = $5, note = $6, image_url = $7 WHERE id = $8").WithArgs(ts.SpenderID, ts.Date, ts.Amount, ts.Category, ts.TransactionType, ts.Note, ts.ImageUrl, ts.ID).WillReturnResult(sqlmock.NewResult(1, 1))
 
 		cfg := config.FeatureFlag{EnableUpdateTransaction: true}
 
@@ -372,7 +372,7 @@ func TestCreateTransaction(t *testing.T) {
 
 		req := httptest.NewRequest(http.MethodPut, "/", strings.NewReader(`{
 			"date": "2024-04-30T09:00:00.000Z",
-			"sender_id":1,
+			"spender_id":1,
 			"amount": 1500,
 			"category": "Food",
 			"transaction_type": "expense",
@@ -396,7 +396,7 @@ func TestCreateTransaction(t *testing.T) {
 		ts := Transaction{
 			ID:              1,
 			Date:            parsedDate,
-			SenderID:        1,
+			SpenderID:        1,
 			Amount:          1500,
 			Category:        "Food",
 			TransactionType: "expense",
@@ -404,7 +404,7 @@ func TestCreateTransaction(t *testing.T) {
 			ImageUrl:        "https://example.com/image1.jpg",
 		}
 
-		mock.ExpectExec("UPDATE transaction SET sender_id = $1, date = $2, amount = $3, category = $4, transaction_type = $5, note = $6, image_url = $7 WHERE id = $8").WithArgs(ts.SenderID, ts.Date, ts.Amount, ts.Category, ts.TransactionType, ts.Note, ts.ImageUrl, ts.ID).WillReturnError(assert.AnError)
+		mock.ExpectExec("UPDATE transaction SET spender_id = $1, date = $2, amount = $3, category = $4, transaction_type = $5, note = $6, image_url = $7 WHERE id = $8").WithArgs(ts.SpenderID, ts.Date, ts.Amount, ts.Category, ts.TransactionType, ts.Note, ts.ImageUrl, ts.ID).WillReturnError(assert.AnError)
 
 		cfg := config.FeatureFlag{EnableUpdateTransaction: true}
 
@@ -421,7 +421,7 @@ func TestCreateTransaction(t *testing.T) {
 
 		req := httptest.NewRequest(http.MethodPut, "/", strings.NewReader(`{
 			"date": "2024-04-30T09:00:00.000Z",
-			"sender_id":1,
+			"spender_id":1,
 			"amount": 1500,
 			"category": "Food",
 			"transaction_type": "expense",
@@ -472,7 +472,7 @@ func TestCreateTransaction(t *testing.T) {
 
 		req := httptest.NewRequest(http.MethodPut, "/", strings.NewReader(`{
 			"date": "2024-04-30T09:00:00.000Z",
-			"sender_id":1,
+			"spender_id":1,
 			"amount": 1500,
 			"category": "Food",
 			"transaction_type": "expense",
@@ -510,7 +510,7 @@ func TestCreateTransaction(t *testing.T) {
 		date := "2024-04-30T09:00:00.000Z"
 		parsedDate, _ := time.Parse(time.RFC3339, date)
 
-		rows := sqlmock.NewRows([]string{"id", "sender_id" ,"date", "amount", "category", "transaction_type", "note", "image_url"}).
+		rows := sqlmock.NewRows([]string{"id", "spender_id" ,"date", "amount", "category", "transaction_type", "note", "image_url"}).
 			AddRow(1, 1, parsedDate, 1500, "Food", "expense", "Lunch", "https://example.com/image1.jpg").
 			AddRow(2, 1, parsedDate, 1500, "Food", "expense", "Lunch", "https://example.com/image1.jpg")
 		mock.ExpectQuery(`SELECT * FROM transaction`).WillReturnRows(rows)
@@ -523,7 +523,7 @@ func TestCreateTransaction(t *testing.T) {
 		assert.JSONEq(t, `[
 			{
 				"id": 1,
-				"sender_id": 1,
+				"spender_id": 1,
 				"date": "2024-04-30T09:00:00Z",
 				"amount": 1500,
 				"category": "Food",
@@ -533,7 +533,7 @@ func TestCreateTransaction(t *testing.T) {
 			},
 			{
 				"id": 2,
-				"sender_id": 1,
+				"spender_id": 1,
 				"date": "2024-04-30T09:00:00Z",
 				"amount": 1500,
 				"category": "Food",

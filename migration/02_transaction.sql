@@ -2,7 +2,7 @@
 -- +goose StatementBegin
 CREATE TABLE IF NOT EXISTS "transaction" (
   id SERIAL PRIMARY KEY,
-  sender_id INT NOT NULL,
+  spender_id INT NOT NULL,
   date TIMESTAMP WITH TIME ZONE,
   amount DECIMAL(10,2) DEFAULT 0,
   category VARCHAR(50) DEFAULT '',
@@ -11,7 +11,7 @@ CREATE TABLE IF NOT EXISTS "transaction" (
   image_url VARCHAR(255) DEFAULT ''
 );
 
-INSERT INTO transaction ( date , sender_id, amount , category, transaction_type, note, image_url) VALUES
+INSERT INTO transaction ( date , spender_id, amount , category, transaction_type, note, image_url) VALUES
 ('2021-07-01 00:00:00', 1, 100, 'Food', 'expense', 'Lunch', ''),
 ('2021-07-02 00:00:00', 1, 200, 'Transport', 'income', 'Bus', ''),
 ('2021-07-03 00:00:00', 1, 300, 'Food', 'income', 'Dinner', ''),
