@@ -33,6 +33,12 @@ spec:
                      configMapKeyRef:
                          name: app-config
                          key: enable.create.spender
+              -  name: ENABLE_CREATE_TRANSACTION
+                 valueFrom:
+                    configMapKeyRef:
+                        name: app-config
+                        key: enable.create.transaction
+
           livenessProbe:
             httpGet:
               path: /api/v1/health
