@@ -116,3 +116,28 @@ func (h handler) Update(c echo.Context) error {
 	logger.Info("update successfully", zap.Int64("id", updateID))
 	return c.JSON(http.StatusOK, ts)
 }
+
+func (h handler) GetAll(c echo.Context) error {
+	logger := mlog.L(c)
+	ctx := c.Request().Context()
+
+	rows, err := h.db.QueryContext(ctx, `SELECT * FROM transaction`)
+	if err != nil {
+		logger.Error("query error", zap.Error(err))
+		return c.JSON(http.StatusInternalServerError, err.Error())
+	}
+	defer rows.Close()
+
+	var ts []Transaction
+	for rows.Next() {
+		var t Transaction
+		err := rows.Scan(&t.ID, &t.SenderID , &t.Date, &t.Amount, &t.Category, &t.TransactionType, &t.Note, &t.ImageUrl)
+		if err != nil {
+			logger.Error("scan error", zap.Error(err))
+			return c.JSON(http.StatusInternalServerError, err.Error())
+		}
+		ts = append(ts, t)
+	}
+
+	return c.JSON(http.StatusOK, ts)
+}
