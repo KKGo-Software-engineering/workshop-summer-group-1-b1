@@ -223,7 +223,7 @@ func TestTransactionBySpenderId(t *testing.T) {
 		e := echo.New()
 		defer e.Close()
 
-		req := httptest.NewRequest(http.MethodGet, "/", nil)
+		req := httptest.NewRequest(http.MethodGet, "/spenders/:id/transactions", nil)
 		rec := httptest.NewRecorder()
 		c := e.NewContext(req, rec)
 
@@ -250,11 +250,11 @@ func TestTransactionBySpenderId(t *testing.T) {
 		"transections":[{"id":1,"spender_id":1,"date":"2024-05-11T20:34:58.651387237Z","amount":1000,"category":"Food","transaction_type":"expense","note":"Lunch","image_url":"https://example.com/image1.jpg"}]}`, rec.Body.String())
 	})
 
-	t.Run("test get spender with non integer ID", func(t *testing.T) {
+	t.Run("test get transaction by spender with non integer ID", func(t *testing.T) {
 		e := echo.New()
 		defer e.Close()
 
-		req := httptest.NewRequest(http.MethodGet, "/non-int", nil)
+		req := httptest.NewRequest(http.MethodGet, "/spenders/:id/transactions", nil)
 		rec := httptest.NewRecorder()
 		c := e.NewContext(req, rec)
 
@@ -264,7 +264,8 @@ func TestTransactionBySpenderId(t *testing.T) {
 		db, mock, _ := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
 		defer db.Close()
 
-		mock.ExpectQuery(`SELECT id, name, email FROM spender WHERE id=$1`).WithArgs("non-int")
+		mock.ExpectQuery(`SELECT id, spender_id, date, amount, category, transaction_type, 
+		note, image_url FROM transaction WHERE spender_id=$1`).WithArgs("non-int")
 
 		h := New(config.FeatureFlag{}, db)
 		err := h.Get(c)
