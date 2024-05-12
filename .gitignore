@@ -5,3 +5,4 @@ infra/iac/sonarqube/ansible/creds/*
 **/inventories/sonarqube.ini
 **/.infracost
 .env
+.envrc
