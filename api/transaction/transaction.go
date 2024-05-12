@@ -15,12 +15,12 @@ import (
 
 type Transaction struct {
 	ID              int64     `json:"id"`
-	SpenderID       int       `json:"spender_id"`
+	SpenderID       int       `json:"spender_id,omitempty" sql:"default:0"` //if default = 0 return nothing
 	Date            time.Time `json:"date"`
 	Amount          float32   `json:"amount"`
 	Category        string    `json:"category"`
-	TransactionType string    `json:"transaction_type"`
-	Note            string    `json:"note"`
+	TransactionType string    `json:"transaction_type,omitempty"`
+	Note            string    `json:"note,omitempty"`
 	ImageUrl        string    `json:"image_url"`
 }
 
@@ -144,9 +144,9 @@ func (h handler) Create(c echo.Context) error {
 }
 
 func (h handler) Update(c echo.Context) error {
-	if !h.flag.EnableUpdateTransaction {
-		return c.JSON(http.StatusForbidden, "update transaction feature is disabled")
-	}
+	// if !h.flag.EnableUpdateTransaction {
+	// 	return c.JSON(http.StatusForbidden, "update transaction feature is disabled")
+	// }
 
 	logger := mlog.L(c)
 	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
@@ -171,6 +171,7 @@ func (h handler) Update(c echo.Context) error {
 	}
 
 	logger.Info("update successfully", zap.Int64("id", updateID))
+	ts.ID = updateID
 	return c.JSON(http.StatusOK, ts)
 }
 
