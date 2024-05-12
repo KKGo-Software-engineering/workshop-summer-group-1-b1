@@ -264,7 +264,7 @@ func TestTransactionBySpenderId(t *testing.T) {
 		db, mock, _ := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
 		defer db.Close()
 
-		mock.ExpectQuery(`SELECT id, spender_id, date, amount, category, transaction_type, 
+		mock.ExpectQuery(`SELECT id, spender_id, date, amount, category, transaction_type,
 		note, image_url FROM transaction WHERE spender_id=$1`).WithArgs("non-int")
 
 		h := New(config.FeatureFlag{}, db)
@@ -272,5 +272,153 @@ func TestTransactionBySpenderId(t *testing.T) {
 
 		assert.NoError(t, err)
 		assert.Equal(t, http.StatusBadRequest, rec.Code)
+	})
+}
+
+func TestGetSummary(t *testing.T) {
+	t.Run("get summary succesfully", func(t *testing.T) {
+		e := echo.New()
+		defer e.Close()
+
+		req := httptest.NewRequest(http.MethodGet, "/", nil)
+		rec := httptest.NewRecorder()
+		c := e.NewContext(req, rec)
+
+		c.SetParamNames("id")
+		c.SetParamValues("1")
+
+		db, mock, _ := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
+		defer db.Close()
+
+		rows := sqlmock.NewRows([]string{"amount", "transaction_type"}).
+			AddRow(1500, "expense").
+			AddRow(2000, "expense").
+			AddRow(1000, "income").
+			AddRow(3000, "income")
+		mock.ExpectQuery(`SELECT amount, transaction_type FROM transaction WHERE spender_id=$1`).WithArgs("1").WillReturnRows(rows)
+
+		h := New(config.FeatureFlag{}, db)
+		err := h.GetSummary(c)
+
+		assert.NoError(t, err)
+		assert.Equal(t, http.StatusOK, rec.Code)
+		assert.JSONEq(t, `{
+			"summary": {
+				"total_income": 4000,
+				"total_expenses": 3500,
+				"current_balance": 500
+			}
+		}`, rec.Body.String())
+	})
+
+	t.Run("test get summary with only expenses", func(t *testing.T) {
+		e := echo.New()
+		defer e.Close()
+
+		req := httptest.NewRequest(http.MethodGet, "/", nil)
+		rec := httptest.NewRecorder()
+		c := e.NewContext(req, rec)
+
+		c.SetParamNames("id")
+		c.SetParamValues("1")
+
+		db, mock, _ := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
+		defer db.Close()
+
+		rows := sqlmock.NewRows([]string{"amount", "transaction_type"}).
+			AddRow(1500, "expense").
+			AddRow(2000, "expense")
+		mock.ExpectQuery(`SELECT amount, transaction_type FROM transaction WHERE spender_id=$1`).WithArgs("1").WillReturnRows(rows)
+
+		h := New(config.FeatureFlag{}, db)
+		err := h.GetSummary(c)
+
+		assert.NoError(t, err)
+		assert.Equal(t, http.StatusOK, rec.Code)
+		assert.JSONEq(t, `{
+			"summary": {
+				"total_income": 0,
+				"total_expenses": 3500,
+				"current_balance": -3500
+			}
+		}`, rec.Body.String())
+	})
+
+	t.Run("test get summary with only income", func(t *testing.T) {
+		e := echo.New()
+		defer e.Close()
+
+		req := httptest.NewRequest(http.MethodGet, "/", nil)
+		rec := httptest.NewRecorder()
+		c := e.NewContext(req, rec)
+
+		c.SetParamNames("id")
+		c.SetParamValues("1")
+
+		db, mock, _ := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
+		defer db.Close()
+
+		rows := sqlmock.NewRows([]string{"amount", "transaction_type"}).
+			AddRow(1000, "income").
+			AddRow(3000, "income")
+		mock.ExpectQuery(`SELECT amount, transaction_type FROM transaction WHERE spender_id=$1`).WithArgs("1").WillReturnRows(rows)
+
+		h := New(config.FeatureFlag{}, db)
+		err := h.GetSummary(c)
+
+		assert.NoError(t, err)
+		assert.Equal(t, http.StatusOK, rec.Code)
+		assert.JSONEq(t, `{
+			"summary": {
+				"total_income": 4000,
+				"total_expenses": 0,
+				"current_balance": 4000
+			}
+		}`, rec.Body.String())
+	})
+
+	t.Run("test get summary with non integer ID", func(t *testing.T) {
+		e := echo.New()
+		defer e.Close()
+
+		req := httptest.NewRequest(http.MethodGet, "/spenders/:id/transactions", nil)
+		rec := httptest.NewRecorder()
+		c := e.NewContext(req, rec)
+
+		c.SetParamNames("id")
+		c.SetParamValues("non-int")
+
+		db, mock, _ := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
+		defer db.Close()
+
+		mock.ExpectQuery(`SELECT id, spender_id, date, amount, category, transaction_type,
+		note, image_url FROM transaction WHERE spender_id=$1`).WithArgs("non-int")
+		mock.ExpectQuery(`SELECT amount, transaction_type FROM transaction WHERE spender_id=$1`).WithArgs("non-int")
+
+		h := New(config.FeatureFlag{}, db)
+		err := h.GetSummary(c)
+
+		assert.NoError(t, err)
+		assert.Equal(t, http.StatusBadRequest, rec.Code)
+	})
+
+	t.Run("get summary failed on database", func(t *testing.T) {
+		e := echo.New()
+		defer e.Close()
+
+		req := httptest.NewRequest(http.MethodGet, "/", nil)
+		rec := httptest.NewRecorder()
+		c := e.NewContext(req, rec)
+
+		db, mock, _ := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
+		defer db.Close()
+
+		mock.ExpectQuery(`SELECT amount, transaction_type FROM transaction WHERE spender_id=$1`).WithArgs("1").WillReturnError(assert.AnError)
+
+		h := New(config.FeatureFlag{}, db)
+		err := h.GetAll(c)
+
+		assert.NoError(t, err)
+		assert.Equal(t, http.StatusInternalServerError, rec.Code)
 	})
 }

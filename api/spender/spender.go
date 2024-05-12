@@ -212,7 +212,7 @@ func (h handler) GetSummary(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, "id is non-int")
 	}
 
-	rows, err := h.db.QueryContext(ctx, `SELECT amount, transaction_type FROM transaction WHERE sender_id=$1`, id)
+	rows, err := h.db.QueryContext(ctx, `SELECT amount, transaction_type FROM transaction WHERE spender_id=$1`, id)
 	if err != nil {
 		logger.Error("query error", zap.Error(err))
 		return c.JSON(http.StatusInternalServerError, err.Error())
